@@ -1,30 +1,80 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState, memo } from 'react';
 import {
   Mail, Github, Linkedin, ExternalLink, Code, Database, Server,
-  ChevronDown, ArrowUpRight, Sparkles, Zap, Terminal, Cloud
+  ArrowUpRight, Sparkles, Zap, Terminal, Cloud, Download
 } from 'lucide-react';
 import '../styles/portifolio.css';
 import ContactSection from './ContactSection';
 import devPhoto from '../resources/dev1.jpg';
+import resume from '../resources/resume.pdf';
 
-// Helper to avoid dynamic Tailwind class strings
 const dotColorClass = (c) =>
   ({ green: 'bg-green-400', yellow: 'bg-yellow-400', blue: 'bg-blue-400' }[c] || 'bg-gray-400');
 
 const API_BASE = 'http://localhost:8080';
 
+const FloatingParticles = () => {
+  const particles = useMemo(
+    () =>
+      Array.from({ length: 20 }).map(() => ({
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        delay: `${Math.random() * 3}s`,
+        duration: `${2 + Math.random() * 2}s`,
+      })),
+    []
+  );
+
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {particles.map((p, i) => (
+        <div
+          key={i}
+          className="floating-particle animate-pulse-particle"
+          style={{
+            left: p.left,
+            top: p.top,
+            animationDelay: p.delay,
+            animationDuration: p.duration,
+          }}
+        />
+      ))}
+    </div>
+  );
+};
+
+const GlassMorphCard = memo(({ children, className = '', delay = 0, id }) => (
+  <div
+    id={id}
+    data-observe="true"
+    className={`glass-card rounded-2xl p-8 transition-shadow duration-500 ease-out group ${className}`}
+    style={{ animation: `slideUp 0.8s ease-out ${delay}s both` }}
+  >
+    {children}
+  </div>
+));
+GlassMorphCard.displayName = 'GlassMorphCard';
+
+const AnimatedText = ({ children, delay = 0 }) => (
+  <div className="animate-text-reveal" style={{ animationDelay: `${delay}s` }}>
+    {children}
+  </div>
+);
+
 const PersonalWebsite = () => {
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
+  const cursorRef = useRef(null);
   const rafRef = useRef(null);
   const observerRef = useRef(null);
   const [isVisible, setIsVisible] = useState({});
 
-  // Cursor-follow light (throttled with rAF)
   useEffect(() => {
     const handleMouseMove = (e) => {
+      if (!cursorRef.current) return;
+      const x = e.clientX - 192;
+      const y = e.clientY - 192;
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = requestAnimationFrame(() => {
-        setMousePosition({ x: e.clientX, y: e.clientY });
+        cursorRef.current.style.transform = `translate(${x}px, ${y}px)`;
       });
     };
     window.addEventListener('mousemove', handleMouseMove);
@@ -34,12 +84,21 @@ const PersonalWebsite = () => {
     };
   }, []);
 
-  // IntersectionObserver (you’re not using isVisible yet, but safe to keep)
   useEffect(() => {
     observerRef.current = new IntersectionObserver(
       (entries) => {
-        entries.forEach((entry) => {
-          setIsVisible((prev) => ({ ...prev, [entry.target.id]: entry.isIntersecting }));
+        setIsVisible((prev) => {
+          const next = { ...prev };
+          let changed = false;
+          entries.forEach((entry) => {
+            const key = entry.target.id;
+            if (!key) return;
+            if (next[key] !== entry.isIntersecting) {
+              next[key] = entry.isIntersecting;
+              changed = true;
+            }
+          });
+          return changed ? next : prev;
         });
       },
       { threshold: 0.1 }
@@ -49,56 +108,20 @@ const PersonalWebsite = () => {
     return () => observerRef.current?.disconnect();
   }, []);
 
-  const FloatingParticles = () => (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: 20 }).map((_, i) => (
-        <div
-          key={i}
-          className="floating-particle animate-pulse-particle"
-          style={{
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            animationDelay: `${Math.random() * 3}s`,
-            animationDuration: `${2 + Math.random() * 2}s`,
-          }}
-        />
-      ))}
-    </div>
-  );
-
-  const GlassMorphCard = ({ children, className = '', delay = 0, id }) => (
-    <div
-      id={id}
-      data-observe="true"
-      className={`glass-card rounded-2xl p-8 transition-shadow duration-500 ease-out group ${className}`}
-      style={{ animation: `slideUp 0.8s ease-out ${delay}s both` }}
-    >
-      {children}
-    </div>
-  );
-
-  const AnimatedText = ({ children, delay = 0 }) => (
-    <div className="animate-text-reveal" style={{ animationDelay: `${delay}s` }}>
-      {children}
-    </div>
-  );
+  const resumeViewer = `${resume}#toolbar=0&navpanes=0&scrollbar=0&zoom=page-width`;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 relative overflow-hidden">
-      {/* Background */}
       <div className="absolute inset-0 mesh-gradient opacity-70" />
       <FloatingParticles />
-
-      {/* Cursor Following Light — always behind content */}
       <div
         aria-hidden
+        ref={cursorRef}
         className="cursor-light -z-10 pointer-events-none"
-        style={{ left: mousePosition.x - 192, top: mousePosition.y - 192 }}
+        style={{ transform: 'translate(-9999px, -9999px)' }}
       />
 
-      {/* Foreground content */}
       <div className="relative z-10">
-        {/* Navigation */}
         <nav className="fixed top-0 w-full z-50 py-6 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="nav-glass rounded-2xl px-8 py-4">
@@ -113,6 +136,7 @@ const PersonalWebsite = () => {
                   <a href="#about" className="text-white/70 hover:text-white transition-colors">About</a>
                   <a href="#experience" className="text-white/70 hover:text-white transition-colors">Experience</a>
                   <a href="#projects" className="text-white/70 hover:text-white transition-colors">Projects</a>
+                  <a href="#resume" className="text-white/70 hover:text-white transition-colors">Resume</a>
                   <a href="#contact" className="text-white/70 hover:text-white transition-colors">Contact</a>
                 </div>
               </div>
@@ -120,7 +144,6 @@ const PersonalWebsite = () => {
           </div>
         </nav>
 
-        {/* Hero */}
         <section id="hero" data-observe="true" className="relative min-h-screen flex items-center justify-center px-4 sm:px-6 lg:px-8">
           <div className="text-center max-w-5xl mx-auto">
             <AnimatedText delay={0.2}>
@@ -166,11 +189,8 @@ const PersonalWebsite = () => {
               </div>
             </AnimatedText>
           </div>
-
-          
         </section>
 
-        {/* About Me */}
         <div id="about" className="py-32 px-4 sm:px-6 lg:px-8 relative">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-20">
@@ -182,11 +202,10 @@ const PersonalWebsite = () => {
 
             <GlassMorphCard delay={0.1} className="relative overflow-hidden">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-center">
-                {/* Profile Image */}
                 <div className="lg:col-span-1 text-center">
                   <div className="relative inline-block">
-                        <div className="profile-wrap mx-auto rounded-full overflow-hidden border-4 border-white/20 shadow-2xl">
-                    <img
+                    <div className="profile-wrap mx-auto rounded-full overflow-hidden border-4 border-white/20 shadow-2xl">
+                      <img
                         src={devPhoto}
                         alt="Anirudh Deveram"
                         className="w-full h-full object-cover"
@@ -195,26 +214,14 @@ const PersonalWebsite = () => {
                   </div>
                 </div>
 
-                {/* About Content */}
                 <div className="lg:col-span-2">
                   <h3 className="text-3xl font-bold text-white mb-6">Hi, I'm Anirudh Deveram</h3>
-
                   <div className="space-y-4 text-white/80 leading-relaxed">
-                    <p>
-                      I'm a passionate Computer Science & Data Science student at Rutgers University with a love for building
-                      innovative solutions that make a real impact. Currently looking for full-time roles and completing my final year!
-                    </p>
-                    <p>
-                      I’ve explored everything from Android to cloud infra, with a focus on clean, efficient code and solving real problems.
-                    </p>
-                    <p>
-                      When I'm not coding, I'm cooking family recipes, wrenching on my project car, or building small quality-of-life tools.
-                    </p>
-                    <p>
-                      I care about the intersection of technical problem-solving and human impact; software that quietly saves people time.
-                    </p>
+                    <p>I'm a passionate Computer Science & Data Science student at Rutgers University with a love for building innovative solutions that make a real impact. Currently looking for full-time roles and completing my final year!</p>
+                    <p>I’ve explored everything from Android to cloud infra, with a focus on clean, efficient code and solving real problems.</p>
+                    <p>When I'm not coding, I'm cooking family recipes, wrenching on my project car, or building small quality-of-life tools.</p>
+                    <p>I care about the intersection of technical problem-solving and human impact; software that quietly saves people time.</p>
                   </div>
-
                   <div className="mt-8 grid grid-cols-2 md:grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-white/5 rounded-lg">
                       <div className="text-2xl font-bold text-blue-400">3+</div>
@@ -239,7 +246,6 @@ const PersonalWebsite = () => {
           </div>
         </div>
 
-        {/* Tech Stack */}
         <section id="tech" data-observe="true" className="py-32 px-4 sm:px-6 lg:px-8 relative">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-20">
@@ -252,7 +258,6 @@ const PersonalWebsite = () => {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {/* Frontend */}
               <GlassMorphCard delay={0.1}>
                 <div className="text-center">
                   <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-2xl flex items-center justify-center">
@@ -275,7 +280,6 @@ const PersonalWebsite = () => {
                 </div>
               </GlassMorphCard>
 
-              {/* Backend */}
               <GlassMorphCard delay={0.2}>
                 <div className="text-center">
                   <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center">
@@ -298,7 +302,6 @@ const PersonalWebsite = () => {
                 </div>
               </GlassMorphCard>
 
-              {/* Data & Cloud */}
               <GlassMorphCard delay={0.3}>
                 <div className="text-center">
                   <div className="w-16 h-16 mx-auto mb-6 bg-gradient-to-br from-green-500 to-emerald-500 rounded-2xl flex items-center justify-center">
@@ -324,7 +327,6 @@ const PersonalWebsite = () => {
           </div>
         </section>
 
-        {/* Experience */}
         <section id="experience" data-observe="true" className="py-32 px-4 sm:px-6 lg:px-8 relative">
           <div className="max-w-6xl mx-auto">
             <div className="text-center mb-20">
@@ -424,7 +426,6 @@ const PersonalWebsite = () => {
           </div>
         </section>
 
-        {/* Education (id fixed to avoid duplicate “about”) */}
         <section id="education" data-observe="true" className="py-32 px-4 sm:px-6 lg:px-8 relative">
           <div className="max-w-4xl mx-auto text-center">
             <GlassMorphCard delay={0.1} className="relative overflow-hidden">
@@ -447,7 +448,6 @@ const PersonalWebsite = () => {
           </div>
         </section>
 
-        {/* Projects */}
         <div id="projects" className="py-32 px-4 sm:px-6 lg:px-8 relative">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-20">
@@ -460,7 +460,6 @@ const PersonalWebsite = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Pulse Reader */}
               <GlassMorphCard delay={0.1} className="project-card hover:shadow-lg transition-shadow duration-500 h-full">
                 <div className="relative h-full flex flex-col">
                   <div className="absolute top-4 right-4 flex space-x-2">
@@ -468,9 +467,7 @@ const PersonalWebsite = () => {
                     <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
                     <div className="w-3 h-3 bg-red-400 rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
                   </div>
-
                   <h3 className="text-2xl font-bold text-white mb-4 pr-16">Pulse Reader</h3>
-
                   <div className="flex flex-wrap gap-2 mb-4">
                     {['Spring Boot', 'PostgreSQL', 'Redis', 'Docker', 'AWS'].map((tech) => (
                       <span key={tech} className="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded-md text-blue-300 text-xs font-medium">
@@ -478,11 +475,9 @@ const PersonalWebsite = () => {
                       </span>
                     ))}
                   </div>
-
                   <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                     High-performance RSS aggregator with PostgreSQL, Redis caching, and automated refresh for 1,000+ sources.
                   </p>
-
                   <div className="space-y-4 mt-auto">
                     <div className="bg-white/5 rounded-lg p-4">
                       <h4 className="text-white font-semibold mb-2 flex items-center">
@@ -495,26 +490,13 @@ const PersonalWebsite = () => {
                         <li>• Graceful retries</li>
                       </ul>
                     </div>
-
-                    <div className="flex space-x-4">
-                      <a href="https://github.com/orangeuaswe/pulse-reader" target="_blank" rel="noopener noreferrer" className="flex items-center text-blue-400 hover:text-blue-300 transition-colors">
-                        <Github className="h-4 w-4 mr-2" />
-                        Source Code
-                      </a>
-                      <a href="https://pulse-reader-demo.herokuapp.com" target="_blank" rel="noopener noreferrer" className="flex items-center text-green-400 hover:text-green-300 transition-colors">
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Live Demo
-                      </a>
-                    </div>
                   </div>
                 </div>
               </GlassMorphCard>
 
-              {/* Window Jumper */}
               <GlassMorphCard delay={0.2} className="project-card hover:shadow-lg transition-shadow duration-500 h-full">
                 <div className="relative h-full flex flex-col">
                   <h3 className="text-2xl font-bold text-white mb-4 pr-16">Window Jumper</h3>
-
                   <div className="flex flex-wrap gap-2 mb-4">
                     {['C#', '.NET', 'WebView2', 'JSON', 'Windows API'].map((tech) => (
                       <span key={tech} className="px-2 py-1 bg-purple-500/20 border border-purple-400/30 rounded-md text-purple-300 text-xs font-medium">
@@ -522,43 +504,15 @@ const PersonalWebsite = () => {
                       </span>
                     ))}
                   </div>
-
                   <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                     Lightweight custom browser with global hotkeys, tray integration, multi-tab, and JSON settings.
                   </p>
-
-                  <div className="space-y-4 mt-auto">
-                    <div className="bg-white/5 rounded-lg p-4">
-                      <h4 className="text-white font-semibold mb-2 flex items-center">
-                        <Terminal className="h-4 w-4 text-green-400 mr-2" />
-                        Key Features
-                      </h4>
-                      <ul className="text-white/70 text-sm space-y-1">
-                        <li>• Global hotkey navigation</li>
-                        <li>• Session restoration</li>
-                        <li>• WebView2 rendering</li>
-                      </ul>
-                    </div>
-
-                    <div className="flex space-x-4">
-                      <a href="https://github.com/orangeuaswe/window-jumper" target="_blank" rel="noopener noreferrer" className="flex items-center text-purple-400 hover:text-purple-300 transition-colors">
-                        <Github className="h-4 w-4 mr-2" />
-                        Source Code
-                      </a>
-                      <a href="https://github.com/orangeuaswe/window-jumper/releases" target="_blank" rel="noopener noreferrer" className="flex items-center text-yellow-400 hover:text-yellow-300 transition-colors">
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        Download
-                      </a>
-                    </div>
-                  </div>
                 </div>
               </GlassMorphCard>
 
-              {/* Fast Food App */}
               <GlassMorphCard delay={0.3} className="project-card hover:shadow-lg transition-shadow duration-500 h-full">
                 <div className="relative h-full flex flex-col">
                   <h3 className="text-2xl font-bold text-white mb-4 pr-16">Fast Food App</h3>
-
                   <div className="flex flex-wrap gap-2 mb-4">
                     {['Android', 'Java', 'MVC', 'RecyclerView', 'Material Design'].map((tech) => (
                       <span key={tech} className="px-2 py-1 bg-green-500/20 border border-green-400/30 rounded-md text-green-300 text-xs font-medium">
@@ -566,43 +520,15 @@ const PersonalWebsite = () => {
                       </span>
                     ))}
                   </div>
-
                   <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                     Android POS rebuilt from JavaFX with clean MVC and smooth RecyclerView UX.
                   </p>
-
-                  <div className="space-y-4 mt-auto">
-                    <div className="bg-white/5 rounded-lg p-4">
-                      <h4 className="text-white font-semibold mb-2 flex items-center">
-                        <Code className="h-4 w-4 text-blue-400 mr-2" />
-                        Architecture
-                      </h4>
-                      <ul className="text-white/70 text-sm space-y-1">
-                        <li>• Clean MVC</li>
-                        <li>• Optimized RecyclerViews</li>
-                        <li>• Material components</li>
-                      </ul>
-                    </div>
-
-                    <div className="flex space-x-4">
-                      <a href="https://github.com/orangeuaswe/fast-food-app" target="_blank" rel="noopener noreferrer" className="flex items-center text-green-400 hover:text-green-300 transition-colors">
-                        <Github className="h-4 w-4 mr-2" />
-                        Source Code
-                      </a>
-                      <a href="https://github.com/orangeuaswe/fast-food-app/releases" target="_blank" rel="noopener noreferrer" className="flex items-center text-orange-400 hover:text-orange-300 transition-colors">
-                        <ExternalLink className="h-4 w-4 mr-2" />
-                        APK Download
-                      </a>
-                    </div>
-                  </div>
                 </div>
               </GlassMorphCard>
 
-              {/* Bank App */}
               <GlassMorphCard delay={0.4} className="project-card hover:shadow-lg transition-shadow duration-500 h-full">
                 <div className="relative h-full flex flex-col">
                   <h3 className="text-2xl font-bold text-white mb-4 pr-16">Bank App</h3>
-
                   <div className="flex flex-wrap gap-2 mb-4">
                     {['JavaFX', 'JUnit', 'FXML', 'Scene Builder', 'Testing'].map((tech) => (
                       <span key={tech} className="px-2 py-1 bg-indigo-500/20 border border-indigo-400/30 rounded-md text-indigo-300 text-xs font-medium">
@@ -610,44 +536,73 @@ const PersonalWebsite = () => {
                       </span>
                     ))}
                   </div>
-
                   <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                     GUI banking with multiple accounts, robust validation, and strong JUnit coverage.
                   </p>
-
-                  <div className="space-y-4 mt-auto">
-                    <div className="bg-white/5 rounded-lg p-4">
-                      <h4 className="text-white font-semibold mb-2 flex items-center">
-                        <Sparkles className="h-4 w-4 text-yellow-400 mr-2" />
-                        Quality Assurance
-                      </h4>
-                      <ul className="text-white/70 text-sm space-y-1">
-                        <li>• Comprehensive tests</li>
-                        <li>• Multiple account types</li>
-                        <li>• Transaction logging</li>
-                      </ul>
-                    </div>
-
-                    <div className="flex space-x-4">
-                      <a href="https://github.com/orangeuaswe/bank-app" target="_blank" rel="noopener noreferrer" className="flex items-center text-indigo-400 hover:text-indigo-300 transition-colors">
-                        <Github className="h-4 w-4 mr-2" />
-                        Source Code
-                      </a>
-                      
-                    </div>
-                  </div>
                 </div>
               </GlassMorphCard>
             </div>
           </div>
         </div>
 
-        {/* Contact */}
+        <section id="resume" data-observe="true" className="py-32 px-4 sm:px-6 lg:px-8 relative">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-10">
+              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+                My <span className="gradient-text">Resume</span>
+              </h2>
+              <p className="text-white/70">Preview below, or download a copy.</p>
+            </div>
+
+            <GlassMorphCard delay={0.1} className="relative overflow-hidden">
+              <div className="flex flex-col md:flex-row md:items-start gap-6">
+                <div className="flex-1 min-w-0">
+                  <div className="rounded-xl overflow-hidden border border-white/10 bg-black/30">
+                    <embed
+                      src={resumeViewer}
+                      type="application/pdf"
+                      className="w-full"
+                      style={{ height: '85vh' }}
+                    />
+                  </div>
+                  <p className="mt-3 text-sm text-white/50">
+                    If the preview doesn’t load,{' '}
+                    <a href={resume} target="_blank" rel="noopener noreferrer" className="underline text-white/70 hover:text-white">
+                      open it in a new tab
+                    </a>.
+                  </p>
+                </div>
+
+                <div className="md:w-64 flex-shrink-0">
+                  <div className="sticky md:top-24 space-y-4">
+                    <a
+                      href={resume}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="w-full inline-flex items-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold hover:opacity-90 transition"
+                    >
+                      <ExternalLink className="h-5 w-5 mr-2" />
+                      Open in new tab
+                    </a>
+                    <a
+                      href={resume}
+                      download
+                      className="w-full inline-flex items-center justify-center px-6 py-3 rounded-xl border-2 border-white/20 text-white font-semibold hover:bg-white/10 transition"
+                    >
+                      <Download className="h-5 w-5 mr-2" />
+                      Download PDF
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </GlassMorphCard>
+          </div>
+        </section>
+
         <section id="contact" data-observe="true" className="py-32 px-4 sm:px-6 lg:px-8 relative">
           <ContactSection apiBase={API_BASE} />
         </section>
 
-        {/* Footer */}
         <footer className="py-16 px-4 sm:px-6 lg:px-8 border-t border-white/10">
           <div className="max-w-7xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-center">
