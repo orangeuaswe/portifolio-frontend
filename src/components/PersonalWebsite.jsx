@@ -7,12 +7,129 @@ import '../styles/portifolio.css';
 import ContactSection from './ContactSection';
 import devPhoto from '../resources/dev1.jpg';
 import resume from '../resources/resume.pdf';
+import NowPlayingWidget from './NowPlayingWidget';
 
 const dotColorClass = (c) =>
   ({ green: 'bg-green-400', yellow: 'bg-yellow-400', blue: 'bg-blue-400' }[c] || 'bg-gray-400');
 
-const API_BASE = 'http://localhost:8080';
+const API_BASE = 'https://backend.deveram.guru';
+//const API_BASE = 'http://localhost:8081'
 
+/* ------------------------------------------------------------------ */
+/* ✨ PixelSparkles — full-viewport, twinkly pixel background          */
+/* ------------------------------------------------------------------ */
+const PixelSparkles = ({ density = 0.0010, maxSize = 2 }) => {
+  const canvasRef = useRef(null);
+  const animRef = useRef(null);
+  const particlesRef = useRef([]);
+  const reducedMotionRef = useRef(false);
+
+  useEffect(() => {
+    const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+    reducedMotionRef.current = mq.matches;
+    const handleChange = () => (reducedMotionRef.current = mq.matches);
+    mq.addEventListener?.('change', handleChange);
+
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d', { alpha: true });
+
+    let width = 0, height = 0, dpr = 1;
+
+    const palette = ['#8ab4ff', '#a78bfa', '#22d3ee', '#f472b6', '#60a5fa', '#c084fc'];
+
+    const reseed = () => {
+      const count = Math.floor(width * height * density);
+      const arr = new Array(count);
+      for (let i = 0; i < count; i++) {
+        arr[i] = {
+          x: Math.random() * width,
+          y: Math.random() * height,
+          vx: (Math.random() - 0.5) * (reducedMotionRef.current ? 0.05 : 0.15),
+          vy: (Math.random() - 0.5) * (reducedMotionRef.current ? 0.05 : 0.15),
+          size: Math.ceil(Math.random() * maxSize),
+          color: palette[(Math.random() * palette.length) | 0],
+          speed: 0.004 + Math.random() * 0.01,
+          phase: Math.random() * Math.PI * 2,
+          alpha: 1,
+        };
+      }
+      particlesRef.current = arr;
+    };
+
+    const resize = () => {
+      dpr = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+      width = Math.floor(window.innerWidth);
+      height = Math.floor(window.innerHeight);
+      canvas.width = Math.floor(width * dpr);
+      canvas.height = Math.floor(height * dpr);
+      canvas.style.width = `${width}px`;
+      canvas.style.height = `${height}px`;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      reseed();
+    };
+
+    const draw = (t) => {
+      ctx.clearRect(0, 0, width, height);
+      const ps = particlesRef.current;
+
+      for (let i = 0; i < ps.length; i++) {
+        const p = ps[i];
+
+        // drift
+        p.x += p.vx;
+        p.y += p.vy;
+
+        // wrap
+        if (p.x < -4) p.x = width + 4;
+        if (p.x > width + 4) p.x = -4;
+        if (p.y < -4) p.y = height + 4;
+        if (p.y > height + 4) p.y = -4;
+
+        // twinkle
+        p.alpha = 0.35 + 0.65 * Math.abs(Math.sin(p.phase + t * p.speed));
+
+        ctx.globalAlpha = p.alpha * 0.9;
+        ctx.fillStyle = p.color;
+        ctx.fillRect(Math.round(p.x), Math.round(p.y), p.size, p.size);
+      }
+      ctx.globalAlpha = 1;
+
+      animRef.current = requestAnimationFrame(draw);
+    };
+
+    const onVisibility = () => {
+      if (document.hidden) {
+        if (animRef.current) cancelAnimationFrame(animRef.current);
+        animRef.current = null;
+      } else if (!animRef.current) {
+        animRef.current = requestAnimationFrame(draw);
+      }
+    };
+
+    resize();
+    window.addEventListener('resize', resize);
+    document.addEventListener('visibilitychange', onVisibility);
+    animRef.current = requestAnimationFrame(draw);
+
+    return () => {
+      mq.removeEventListener?.('change', handleChange);
+      window.removeEventListener('resize', resize);
+      document.removeEventListener('visibilitychange', onVisibility);
+      if (animRef.current) cancelAnimationFrame(animRef.current);
+    };
+  }, [density, maxSize]);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      className="sparkle-canvas fixed inset-0 pointer-events-none z-10"
+      aria-hidden="true"
+    />
+  );
+};
+
+/* soft-floating blobs you already had (kept) */
 const FloatingParticles = () => {
   const particles = useMemo(
     () =>
@@ -26,7 +143,7 @@ const FloatingParticles = () => {
   );
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="absolute inset-0 overflow-hidden pointer-events-none z-20">
       {particles.map((p, i) => (
         <div
           key={i}
@@ -112,16 +229,28 @@ const PersonalWebsite = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-950 via-blue-950 to-indigo-950 relative overflow-hidden">
-      <div className="absolute inset-0 mesh-gradient opacity-70" />
+      {/* base gradient at the very back */}
+      <div className="absolute inset-0 mesh-gradient opacity-70 z-0" />
+
+      {/* ✨ sparkles (full viewport), below floaters and content */}
+      <PixelSparkles density={0.0016} maxSize={3} />
+
+      {/* floating blobs on top of sparkles */}
       <FloatingParticles />
+
+      {/* cursor glow below content */}
       <div
         aria-hidden
         ref={cursorRef}
-        className="cursor-light -z-10 pointer-events-none"
+        className="cursor-light z-20 pointer-events-none"
         style={{ transform: 'translate(-9999px, -9999px)' }}
       />
+      <div className="fixed bottom-6 right-6 z-50 max-w-sm pointer-events-auto">
+     <NowPlayingWidget apiBase={API_BASE} />
+   </div>
 
-      <div className="relative z-10">
+      {/* MAIN CONTENT sits above all decorative layers */}
+      <div className="relative z-30">
         <nav className="fixed top-0 w-full z-50 py-6 px-4 sm:px-6 lg:px-8">
           <div className="max-w-7xl mx-auto">
             <div className="nav-glass rounded-2xl px-8 py-4">
@@ -448,6 +577,7 @@ const PersonalWebsite = () => {
           </div>
         </section>
 
+        {/* Projects */}
         <div id="projects" className="py-32 px-4 sm:px-6 lg:px-8 relative">
           <div className="max-w-7xl mx-auto">
             <div className="text-center mb-20">
@@ -460,43 +590,76 @@ const PersonalWebsite = () => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <GlassMorphCard delay={0.1} className="project-card hover:shadow-lg transition-shadow duration-500 h-full">
-                <div className="relative h-full flex flex-col">
-                  <div className="absolute top-4 right-4 flex space-x-2">
-                    <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
-                    <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
-                    <div className="w-3 h-3 bg-red-400 rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
-                  </div>
-                  <h3 className="text-2xl font-bold text-white mb-4 pr-16">Pulse Reader</h3>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {['Spring Boot', 'PostgreSQL', 'Redis', 'Docker', 'AWS'].map((tech) => (
-                      <span key={tech} className="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded-md text-blue-300 text-xs font-medium">
-                        {tech}
-                      </span>
-                    ))}
-                  </div>
-                  <p className="text-white/80 mb-6 leading-relaxed flex-grow">
-                    High-performance RSS aggregator with PostgreSQL, Redis caching, and automated refresh for 1,000+ sources.
-                  </p>
-                  <div className="space-y-4 mt-auto">
-                    <div className="bg-white/5 rounded-lg p-4">
-                      <h4 className="text-white font-semibold mb-2 flex items-center">
-                        <Zap className="h-4 w-4 text-yellow-400 mr-2" />
-                        Performance Highlights
-                      </h4>
-                      <ul className="text-white/70 text-sm space-y-1">
-                        <li>• Sub-100ms queries with Redis</li>
-                        <li>• Automated scheduling</li>
-                        <li>• Graceful retries</li>
-                      </ul>
-                    </div>
-                  </div>
-                </div>
-              </GlassMorphCard>
+             {/* PoraoBD – AI Tutoring Platform */}
+<GlassMorphCard delay={0.1} className="project-card hover:shadow-lg transition-shadow duration-500 h-full">
+  <div className="relative h-full flex flex-col">
+    <div className="absolute top-4 right-4 flex space-x-2">
+      <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse" />
+      <div className="w-3 h-3 bg-yellow-400 rounded-full animate-pulse" style={{ animationDelay: '0.5s' }} />
+      <div className="w-3 h-3 bg-red-400 rounded-full animate-pulse" style={{ animationDelay: '1s' }} />
+    </div>
 
+    <h3 className="text-2xl font-bold text-white mb-4 pr-16">PoraoBD – AI Tutoring Platform</h3>
+
+    <div className="flex flex-wrap gap-2 mb-4">
+      {['Spring Boot', 'PostgreSQL', 'React', 'OpenAI API', 'WebSockets'].map((tech) => (
+        <span
+          key={tech}
+          className="px-2 py-1 bg-blue-500/20 border border-blue-400/30 rounded-md text-blue-300 text-xs font-medium"
+        >
+          {tech}
+        </span>
+      ))}
+    </div>
+
+    <p className="text-white/80 mb-6 leading-relaxed flex-grow">
+      AI-powered tutoring platform built for HackRU that matches students with tutors using semantic embeddings and cosine similarity for personalized learning recommendations.
+    </p>
+
+    <div className="space-y-4 mt-auto">
+      <div className="bg-white/5 rounded-lg p-4">
+        <h4 className="text-white font-semibold mb-2 flex items-center">
+          <Zap className="h-4 w-4 text-yellow-400 mr-2" />
+          Key Features
+        </h4>
+        <ul className="text-white/70 text-sm space-y-1">
+          <li>• Real-time chat with WebSockets</li>
+          <li>• OAuth login (Google)</li>
+          <li>• AI tutor ranking via OpenAI API</li>
+          <li>• Geolocation search with Google Maps</li>
+        </ul>
+      </div>
+
+      <div className="flex space-x-4">
+        <a
+          href="https://github.com/orangeuaswe/PoraoBD"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center text-blue-400 hover:text-blue-300 transition-colors"
+        >
+          <Github className="h-4 w-4 mr-2" />
+          Source Code
+        </a>
+        <a
+          href="https://devpost.com//software/poraobd"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center text-pink-400 hover:text-pink-300 transition-colors"
+        >
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Devpost
+        </a>
+      </div>
+    </div>
+  </div>
+</GlassMorphCard>
+
+
+              {/* Window Jumper */}
               <GlassMorphCard delay={0.2} className="project-card hover:shadow-lg transition-shadow duration-500 h-full">
                 <div className="relative h-full flex flex-col">
                   <h3 className="text-2xl font-bold text-white mb-4 pr-16">Window Jumper</h3>
+
                   <div className="flex flex-wrap gap-2 mb-4">
                     {['C#', '.NET', 'WebView2', 'JSON', 'Windows API'].map((tech) => (
                       <span key={tech} className="px-2 py-1 bg-purple-500/20 border border-purple-400/30 rounded-md text-purple-300 text-xs font-medium">
@@ -504,15 +667,43 @@ const PersonalWebsite = () => {
                       </span>
                     ))}
                   </div>
+
                   <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                     Lightweight custom browser with global hotkeys, tray integration, multi-tab, and JSON settings.
                   </p>
+
+                  <div className="space-y-4 mt-auto">
+                    <div className="bg-white/5 rounded-lg p-4">
+                      <h4 className="text-white font-semibold mb-2 flex items-center">
+                        <Terminal className="h-4 w-4 text-green-400 mr-2" />
+                        Key Features
+                      </h4>
+                      <ul className="text-white/70 text-sm space-y-1">
+                        <li>• Global hotkey navigation</li>
+                        <li>• Session restoration</li>
+                        <li>• WebView2 rendering</li>
+                      </ul>
+                    </div>
+
+                    <div className="flex space-x-4">
+                      <a href="https://github.com/orangeuaswe/window-jumper" target="_blank" rel="noopener noreferrer" className="flex items-center text-purple-400 hover:text-purple-300 transition-colors">
+                        <Github className="h-4 w-4 mr-2" />
+                        Source Code
+                      </a>
+                      <a href="https://github.com/orangeuaswe/window-jumper/releases" target="_blank" rel="noopener noreferrer" className="flex items-center text-yellow-400 hover:text-yellow-300 transition-colors">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Download
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </GlassMorphCard>
 
+              {/* Fast Food App */}
               <GlassMorphCard delay={0.3} className="project-card hover:shadow-lg transition-shadow duration-500 h-full">
                 <div className="relative h-full flex flex-col">
                   <h3 className="text-2xl font-bold text-white mb-4 pr-16">Fast Food App</h3>
+
                   <div className="flex flex-wrap gap-2 mb-4">
                     {['Android', 'Java', 'MVC', 'RecyclerView', 'Material Design'].map((tech) => (
                       <span key={tech} className="px-2 py-1 bg-green-500/20 border border-green-400/30 rounded-md text-green-300 text-xs font-medium">
@@ -520,15 +711,43 @@ const PersonalWebsite = () => {
                       </span>
                     ))}
                   </div>
+
                   <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                     Android POS rebuilt from JavaFX with clean MVC and smooth RecyclerView UX.
                   </p>
+
+                  <div className="space-y-4 mt-auto">
+                    <div className="bg-white/5 rounded-lg p-4">
+                      <h4 className="text-white font-semibold mb-2 flex items-center">
+                        <Code className="h-4 w-4 text-blue-400 mr-2" />
+                        Architecture
+                      </h4>
+                      <ul className="text-white/70 text-sm space-y-1">
+                        <li>• Clean MVC</li>
+                        <li>• Optimized RecyclerViews</li>
+                        <li>• Material components</li>
+                      </ul>
+                    </div>
+
+                    <div className="flex space-x-4">
+                      <a href="https://github.com/orangeuaswe/fast-food-app" target="_blank" rel="noopener noreferrer" className="flex items-center text-green-400 hover:text-green-300 transition-colors">
+                        <Github className="h-4 w-4 mr-2" />
+                        Source Code
+                      </a>
+                      <a href="https://github.com/orangeuaswe/fast-food-app/releases" target="_blank" rel="noopener noreferrer" className="flex items-center text-orange-400 hover:text-orange-300 transition-colors">
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        APK Download
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </GlassMorphCard>
 
+              {/* Bank App */}
               <GlassMorphCard delay={0.4} className="project-card hover:shadow-lg transition-shadow duration-500 h-full">
                 <div className="relative h-full flex flex-col">
                   <h3 className="text-2xl font-bold text-white mb-4 pr-16">Bank App</h3>
+
                   <div className="flex flex-wrap gap-2 mb-4">
                     {['JavaFX', 'JUnit', 'FXML', 'Scene Builder', 'Testing'].map((tech) => (
                       <span key={tech} className="px-2 py-1 bg-indigo-500/20 border border-indigo-400/30 rounded-md text-indigo-300 text-xs font-medium">
@@ -536,68 +755,99 @@ const PersonalWebsite = () => {
                       </span>
                     ))}
                   </div>
+
                   <p className="text-white/80 mb-6 leading-relaxed flex-grow">
                     GUI banking with multiple accounts, robust validation, and strong JUnit coverage.
                   </p>
+
+                  <div className="space-y-4 mt-auto">
+                    <div className="bg-white/5 rounded-lg p-4">
+                      <h4 className="text-white font-semibold mb-2 flex items-center">
+                        <Sparkles className="h-4 w-4 text-yellow-400 mr-2" />
+                        Quality Assurance
+                      </h4>
+                      <ul className="text-white/70 text-sm space-y-1">
+                        <li>• Comprehensive tests</li>
+                        <li>• Multiple account types</li>
+                        <li>• Transaction logging</li>
+                      </ul>
+                    </div>
+
+                    <div className="flex space-x-4">
+                      <a href="https://github.com/orangeuaswe/bank-app" target="_blank" rel="noopener noreferrer" className="flex items-center text-indigo-400 hover:text-indigo-300 transition-colors">
+                        <Github className="h-4 w-4 mr-2" />
+                        Source Code
+                      </a>
+                    </div>
+                  </div>
                 </div>
               </GlassMorphCard>
             </div>
           </div>
         </div>
 
-        <section id="resume" data-observe="true" className="py-32 px-4 sm:px-6 lg:px-8 relative">
-          <div className="max-w-6xl mx-auto">
-            <div className="text-center mb-10">
-              <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
-                My <span className="gradient-text">Resume</span>
-              </h2>
-              <p className="text-white/70">Preview below, or download a copy.</p>
-            </div>
+<section id="resume" data-observe="true" className="py-32 px-4 sm:px-6 lg:px-8 relative">
+  <div className="max-w-7xl mx-auto">
+    <div className="text-center mb-10">
+      <h2 className="text-4xl md:text-5xl font-bold text-white mb-4">
+        My <span className="gradient-text">Resume</span>
+      </h2>
+      <p className="text-white/70">Preview below, or download a copy.</p>
+    </div>
 
-            <GlassMorphCard delay={0.1} className="relative overflow-hidden">
-              <div className="flex flex-col md:flex-row md:items-start gap-6">
-                <div className="flex-1 min-w-0">
-                  <div className="rounded-xl overflow-hidden border border-white/10 bg-black/30">
-                    <embed
-                      src={resumeViewer}
-                      type="application/pdf"
-                      className="w-full"
-                      style={{ height: '85vh' }}
-                    />
-                  </div>
-                  <p className="mt-3 text-sm text-white/50">
-                    If the preview doesn’t load,{' '}
-                    <a href={resume} target="_blank" rel="noopener noreferrer" className="underline text-white/70 hover:text-white">
-                      open it in a new tab
-                    </a>.
-                  </p>
-                </div>
+    <GlassMorphCard delay={0.1} className="relative overflow-hidden">
+      <div className="space-y-6">
 
-                <div className="md:w-64 flex-shrink-0">
-                  <div className="sticky md:top-24 space-y-4">
-                    <a
-                      href={resume}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="w-full inline-flex items-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold hover:opacity-90 transition"
-                    >
-                      <ExternalLink className="h-5 w-5 mr-2" />
-                      Open in new tab
-                    </a>
-                    <a
-                      href={resume}
-                      download
-                      className="w-full inline-flex items-center justify-center px-6 py-3 rounded-xl border-2 border-white/20 text-white font-semibold hover:bg-white/10 transition"
-                    >
-                      <Download className="h-5 w-5 mr-2" />
-                      Download PDF
-                    </a>
-                  </div>
-                </div>
-              </div>
-            </GlassMorphCard>
-          </div>
-        </section>
+        <div className="flex gap-4 justify-center">
+          <a
+            href={resume}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center px-6 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold hover:opacity-90 transition"
+            aria-label="Open resume in a new tab"
+          >
+            <ExternalLink className="h-5 w-5 mr-2" />
+            Open in new tab
+          </a>
+
+          <a
+            href={resume}
+            download
+            className="inline-flex items-center justify-center px-6 py-3 rounded-xl border-2 border-white/20 text-white font-semibold hover:bg-white/10 transition"
+            aria-label="Download resume PDF"
+          >
+            <Download className="h-5 w-5 mr-2" />
+            Download PDF
+          </a>
+        </div>
+
+        {/* Full width PDF */}
+        <div className="rounded-xl overflow-hidden border border-white/10">
+          <iframe
+            src={resumeViewer}
+            className="w-full"
+            style={{ height: '800px', border: 'none' }}
+            title="Resume PDF"
+            loading="lazy"
+          />
+        </div>
+
+        <p className="text-sm text-white/50 text-center">
+          If the preview doesn't load,{' '}
+          <a
+            href={resume}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline text-white/70 hover:text-white"
+          >
+            open it in a new tab
+          </a>.
+        </p>
+      </div>
+    </GlassMorphCard>
+  </div>
+</section>
+
 
         <section id="contact" data-observe="true" className="py-32 px-4 sm:px-6 lg:px-8 relative">
           <ContactSection apiBase={API_BASE} />
@@ -612,7 +862,7 @@ const PersonalWebsite = () => {
               </div>
               <div className="flex space-x-6">
                 <a
-                  href="https://github.com/oranngeuaswe"
+                  href="https://github.com/orangeuaswe"
                   target="_blank" rel="noopener noreferrer"
                   className="group p-3 bg-white/5 hover:bg-white/10 border border-white/10 hover:border-white/20 rounded-xl transition-colors duration-300"
                   aria-label="GitHub"

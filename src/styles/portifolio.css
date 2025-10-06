@@ -586,7 +586,50 @@
   }
 }
 
-/* ===========================
-   Background gradients base
-   =========================== */
 .bg-gradient-to-br { background-image: linear-gradient(to bottom right, var(--tw-gradient-stops)); }
+
+.sparkle-canvas {
+  image-rendering: pixelated;
+ 
+   filter: drop-shadow(0 0 2px rgba(140, 200, 255, 0.25)); 
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sparkle-canvas {
+    display: none;
+  }
+}
+
+
+
+.now-playing-widget {
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  width: 320px !important; /* Force the correct width */
+  max-width: 320px !important;
+}
+
+.now-playing-widget .space-x-50 > * + * {
+  margin-top: 3.0rem !important;
+}
+
+.now-playing-widget:hover {
+  transform: translateY(-2px);
+}
+
+.fixed.bottom-6.right-6 {
+  position: fixed !important;
+  bottom: 1.5rem !important;
+  right: 1.5rem !important;
+  z-index: 50 !important;
+  max-width: 320px !important;
+}
+
+@media (max-width: 640px) {
+  .fixed.bottom-6.right-6 {
+    bottom: 1rem !important;
+    right: 1rem !important;
+    left: 1rem !important;
+    max-width: none !important;
+  }
+} 
