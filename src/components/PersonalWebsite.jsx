@@ -15,9 +15,6 @@ const dotColorClass = (c) =>
 const API_BASE = 'https://backend.deveram.guru';
 //const API_BASE = 'http://localhost:8081'
 
-/* ------------------------------------------------------------------ */
-/* ✨ PixelSparkles — full-viewport, twinkly pixel background          */
-/* ------------------------------------------------------------------ */
 const PixelSparkles = ({ density = 0.0010, maxSize = 2 }) => {
   const canvasRef = useRef(null);
   const animRef = useRef(null);
@@ -129,7 +126,6 @@ const PixelSparkles = ({ density = 0.0010, maxSize = 2 }) => {
   );
 };
 
-/* soft-floating blobs you already had (kept) */
 const FloatingParticles = () => {
   const particles = useMemo(
     () =>
@@ -182,7 +178,7 @@ const PersonalWebsite = () => {
   const cursorRef = useRef(null);
   const rafRef = useRef(null);
   const observerRef = useRef(null);
-  const [isVisible, setIsVisible] = useState({});
+  const [, setIsVisible] = useState({});
 
   useEffect(() => {
     const handleMouseMove = (e) => {
