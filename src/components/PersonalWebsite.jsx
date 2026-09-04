@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
 import HERO_IMG from '../resources/hero.jpg'
-const API_BASE = "https://backend.deveram.guru"; // your Spring Boot backend
-const RESUME_URL = "/resume.pdf"; // put resume.pdf in /public on your site
+const API_BASE = "https://backend.deveram.guru"; 
+const RESUME_URL = "/resume.pdf"; 
 const profile = {
   brackets: "「ANIRUDH DEVERAM」",
   tagline: "computer science & data science @ rutgers",
@@ -535,7 +535,7 @@ function TopBar({ route, go }) {
           const active = route === key || route === `project:${key}`;
           return (
             <React.Fragment key={key}>
-              {i > 0 && <span className="sep">//</span>}
+              {i > 0 && <span className="sep">{"//"}</span>}
               {active ? (
                 <span className="cur">{label}</span>
               ) : (
@@ -546,7 +546,7 @@ function TopBar({ route, go }) {
             </React.Fragment>
           );
         })}
-        <span className="sep">//</span>
+        <span className="sep">{"//"}</span>
         <a href={profile.github} target="_blank" rel="noreferrer">github</a>
       </nav>
     </div>
@@ -567,15 +567,15 @@ function Home({ go }) {
           <Clock />
           <div className="aw-homenav">
             <button className="aw-link" onClick={() => go("about")}>about</button>
-            <span className="sep">//</span>
+            <span className="sep">{"//"}</span>
             <button className="aw-link" onClick={() => go("projects")}>projects</button>
-            <span className="sep">//</span>
+            <span className="sep">{"//"}</span>
             <button className="aw-link" onClick={() => go("resume")}>resume</button>
-            <span className="sep">//</span>
+            <span className="sep">{"//"}</span>
             <button className="aw-link" onClick={() => go("contact")}>contact</button>
-            <span className="sep">//</span>
+            <span className="sep">{"//"}</span>
             <a href={profile.github} target="_blank" rel="noreferrer">github</a>
-            <span className="sep">//</span>
+            <span className="sep">{"//"}</span>
             <a href={profile.linkedin} target="_blank" rel="noreferrer">linkedin</a>
           </div>
         </div>
