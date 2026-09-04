@@ -765,7 +765,6 @@ function Resume() {
       <iframe className="aw-frame" src={`${RESUME_URL}#toolbar=0&navpanes=0&view=FitH`} title="Resume" />
       <p className="aw-frame-note">
         if the preview doesn't load, <a href={RESUME_URL} target="_blank" rel="noreferrer">open it in a new tab</a>.
-        (the pdf loads on your deployed site once <code>resume.pdf</code> is in <code>/public</code>.)
       </p>
     </div>
   );
